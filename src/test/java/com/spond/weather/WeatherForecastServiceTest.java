@@ -4,18 +4,17 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.spond.weather.dto.ForecastDTO;
 import com.spond.weather.dto.WeatherApiResponse;
 import com.spond.weather.service.WeatherForecastService;
-import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.AfterAll;
+import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mockito;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.http.ResponseEntity;
-import org.springframework.test.context.ActiveProfiles;
-
-import org.springframework.test.context.junit.jupiter.SpringExtension;
+import org.springframework.test.context.DynamicPropertyRegistry;
+import org.springframework.test.context.DynamicPropertySource;
 
 import org.springframework.web.client.RestTemplate;
 import org.testcontainers.containers.GenericContainer;
@@ -33,15 +32,13 @@ import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 
 @SpringBootTest
-@ExtendWith(SpringExtension.class)
-@ActiveProfiles("test")
 @Testcontainers
 class WeatherForecastServiceTest {
 
     private final ObjectMapper objectMapper = new ObjectMapper();
 
     @Container
-    public static GenericContainer<?> redisContainer = new GenericContainer<>("redis:latest")
+    private static final GenericContainer<?> redisContainer = new GenericContainer<>("redis:7.0.0")
             .withExposedPorts(6379);
 
     @MockBean
@@ -54,25 +51,31 @@ class WeatherForecastServiceTest {
     @Autowired
     private WeatherForecastService weatherService;
 
+    @DynamicPropertySource
+    static void redisProperties(DynamicPropertyRegistry registry) {
+        registry.add("spring.data.redis.host", redisContainer::getHost);
+        registry.add("spring.data.redis.port", redisContainer::getFirstMappedPort);
+    }
+
+    @BeforeAll
+    static void setUp() {
+        redisContainer.start();
+    }
+
+    @AfterAll
+    static void tearDown() {
+        redisContainer.stop();
+    }
+
     private UUID eventId;
     private double latitude;
     private double longitude;
     private String start;
     private String end;
 
-    @BeforeEach
-    void setUp() {
-
-        String address = redisContainer.getHost();
-        Integer port = redisContainer.getMappedPort(6379);
-        System.setProperty("spring.data.redis.host", address);
-        System.setProperty("spring.data.redis.port", port.toString());
-        //MockitoAnnotations.openMocks(this);
-        redisTemplate.getConnectionFactory().getConnection().flushAll();
-    }
 
     @Test
-    void testWeatherForecastCachingHit() throws IOException {
+    void testWeatherForecastCachingHit() {
 
         eventId = UUID.randomUUID();
         latitude = 60.10;

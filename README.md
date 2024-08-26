@@ -58,10 +58,10 @@ To build the service, you can use the following command:
 mvn clean install
 ```
 
-To run the service, you can use the following script:
+To run the service inside docker, you can use the following command:
 
 ```
-chmod +x entrypoint.sh
-./entrypoint.sh
+ docker compose up -d --build
+
 ```
- It will start the service on port 8080, along with the Redis server on port 6379 and running the tests.
+ It will start the service on port 8080, along with the Redis server on port 6379.

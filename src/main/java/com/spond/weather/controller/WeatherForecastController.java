@@ -71,7 +71,7 @@ public class WeatherForecastController {
                             .success(false)
                             .error(ErrorResponseDTO.builder()
                                     .errorCode(ERROR_CODE_INTERNAL_SERVER_ERROR)
-                                    .errorDescription("Error occurred while processing the request")
+                                    .errorDescription("Error occurred while processing the request"+ e.getMessage())
                                     .build())
                             .build());
         }

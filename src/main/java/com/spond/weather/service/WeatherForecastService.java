@@ -31,8 +31,7 @@ public class WeatherForecastService {
 
     private final RedisTemplate<String, Object> redisTemplate;
 
-    private final static String WEATHER_API_URL = "https://api.weather.com/v1/forecast?latitude=%s&longitude=%s";
-
+    private final static String WEATHER_API_URL = "https://api.met.no/weatherapi/locationforecast/2.0/compact?lat=%s&lon=%s";
 
     public Optional<ForecastDTO> getWeatherForecast(UUID eventId, double latitude, double longitude, String startTimeStamp, String endTimeStamp) {
 
@@ -60,7 +59,7 @@ public class WeatherForecastService {
 
         } catch (Exception e) {
             logger.error("Exception occurred while getting weather forecast data", e);
-            throw new RuntimeException("Exception occurred while getting weather forecast data");
+            throw new RuntimeException(e.getMessage());
         }
     }
 
