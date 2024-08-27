@@ -35,6 +35,7 @@ Logic implemented for the service:
 
 Processing of data fetched from Met.no API:
  - The service filters the weather forecast data based on the start and end time of the event and also takes into consideration the forecast data upto 7 days.
+ - If the weather forecast data is not available for the event duration, the service filters the forecast data closest to startTime and endTime.
  - The service then calculates the average temperature for the event duration.
  - The service then returns the response with the current weather conditions.
 

@@ -10,7 +10,10 @@ import java.time.Instant;
 import java.time.LocalDateTime;
 import java.time.ZoneId;
 import java.time.ZoneOffset;
+import java.util.Collections;
+import java.util.Comparator;
 import java.util.List;
+import java.util.stream.Collectors;
 
 @Slf4j
 public class ApplicationUtils {
@@ -29,17 +32,28 @@ public class ApplicationUtils {
             // Calculate the maximum date allowed (7 days from now)
             LocalDateTime maxAllowedDate = LocalDateTime.now().plusDays(7);
 
-            List<WeatherApiResponse.TimeSeries> filteredData = weatherApiResponse.getProperties().getTimeseries().stream()
+            List<WeatherApiResponse.TimeSeries> filteredData = new java.util.ArrayList<>(weatherApiResponse.getProperties().getTimeseries().stream()
                     .filter(data -> {
                         LocalDateTime forecastTime = LocalDateTime.ofInstant(Instant.parse(data.getTime()), ZoneId.ofOffset("UTC", ZoneOffset.UTC));
                         // Filter conditions:
-                        // 1. Forecast time is within the provided start and end time
+                        // 1. Forecast time is within the provided start and end time or
                         // 2. Forecast time is within the next 7 days from now
+
                         return (forecastTime.isAfter(startTime) || forecastTime.isEqual(startTime)) &&
                                 (forecastTime.isBefore(endTime) || forecastTime.isEqual(endTime)) &&
                                 forecastTime.isBefore(maxAllowedDate);
                     })
-                    .toList();
+                    .toList());
+
+            //Condition if no data is found between/or matching the start and end time
+            if (filteredData.isEmpty()) {
+
+                List<WeatherApiResponse.TimeSeries> closestStartTimeForeCast = findClosestForecast(weatherApiResponse.getProperties().getTimeseries(), startTime, maxAllowedDate);
+                List<WeatherApiResponse.TimeSeries> closestEndTimeForeCast = findClosestForecast(weatherApiResponse.getProperties().getTimeseries(), endTime, maxAllowedDate);
+
+                filteredData.addAll(closestStartTimeForeCast);
+                filteredData.addAll(closestEndTimeForeCast);
+            }
 
             logger.info("Filtered data size: {}", filteredData);
 
@@ -91,5 +105,21 @@ public class ApplicationUtils {
         finalForeCast.setWindSpeed(Math.round(avgWindSpeed * 10.0) / 10.0);
 
         return finalForeCast;
+    }
+
+    private static List<WeatherApiResponse.TimeSeries> findClosestForecast(List<WeatherApiResponse.TimeSeries> timeSeriesList, LocalDateTime eventTime, LocalDateTime maxAllowedDate) {
+        return timeSeriesList.stream()
+                .filter(
+                        data -> {
+                            LocalDateTime forecastTime = LocalDateTime.ofInstant(Instant.parse(data.getTime()), ZoneId.ofOffset("UTC", ZoneOffset.UTC));
+                            return forecastTime.isBefore(maxAllowedDate);
+                        }
+                )
+                .sorted(Comparator.comparing(data -> {
+                    LocalDateTime forecastTime = LocalDateTime.ofInstant(Instant.parse(data.getTime()), ZoneId.ofOffset("UTC", ZoneOffset.UTC));
+                    return Math.abs(forecastTime.toEpochSecond(ZoneOffset.UTC) - eventTime.toEpochSecond(ZoneOffset.UTC));
+                }))
+                .limit(1)
+                .toList();
     }
 }

@@ -123,8 +123,8 @@ class WeatherForecastServiceTest {
         Optional<ForecastDTO> result = weatherService.getWeatherForecast(eventId, latitude, longitude, start, end);
 
         assertTrue(result.isPresent());
-        assertEquals(14.7, result.get().getAirTemperature());
-        assertEquals(4.1, result.get().getWindSpeed());
+        assertEquals(17.8, result.get().getAirTemperature());
+        assertEquals(5.5, result.get().getWindSpeed());
 
         // Verify that RestTemplate was called once
         verify(restTemplate, times(1)).getForEntity(Mockito.anyString(), eq(WeatherApiResponse.class));
@@ -132,14 +132,59 @@ class WeatherForecastServiceTest {
         // Verify that the data is now in cache
         ForecastDTO cachedForecast = (ForecastDTO) redisTemplate.opsForValue().get(cacheKey);
         assertNotNull(cachedForecast);
-        assertEquals(14.7, cachedForecast.getAirTemperature());
-        assertEquals(4.1, cachedForecast.getWindSpeed());
+        assertEquals(17.8, cachedForecast.getAirTemperature());
+        assertEquals(5.5, cachedForecast.getWindSpeed());
 
         Optional<ForecastDTO> result2 = weatherService.getWeatherForecast(eventId, latitude, longitude, start, end);
 
         assertTrue(result2.isPresent());
-        assertEquals(14.7, result2.get().getAirTemperature());
-        assertEquals(4.1, result2.get().getWindSpeed());
+        assertEquals(cachedForecast.getAirTemperature(), result2.get().getAirTemperature());
+        assertEquals(cachedForecast.getWindSpeed(), result2.get().getWindSpeed());
+
+        verify(restTemplate, Mockito.never())
+                .getForObject(any(String.class), eq(WeatherApiResponse.class));
+    }
+
+    @Test
+    void testWeatherForecastGetCorrectDataForClosestRange() throws IOException {
+
+        eventId = UUID.randomUUID();
+        latitude = 59.911;
+        longitude = 10.757;
+
+        start = "2024-09-01T14:00:00Z";
+        end = "2024-09-01T16:00:00Z";
+
+        String cacheKey = "EventID:" + eventId;
+
+        // Create a WeatherApiResponse object from file met_response.json in src/test/resources
+        WeatherApiResponse mockResponse = objectMapper.readValue(getClass().getClassLoader().getResourceAsStream("met_response.json"), WeatherApiResponse.class);
+
+        ResponseEntity<WeatherApiResponse> responseEntity = ResponseEntity.ok(mockResponse);
+
+        Mockito.when(restTemplate.getForEntity(Mockito.anyString(), eq(WeatherApiResponse.class)))
+                .thenReturn(responseEntity);
+
+        Optional<ForecastDTO> result = weatherService.getWeatherForecast(eventId, latitude, longitude, start, end);
+
+        assertTrue(result.isPresent());
+        assertEquals(18.8, result.get().getAirTemperature());
+        assertEquals(2.0, result.get().getWindSpeed());
+
+        // Verify that RestTemplate was called once
+        verify(restTemplate, times(1)).getForEntity(Mockito.anyString(), eq(WeatherApiResponse.class));
+
+        // Verify that the data is now in cache
+        ForecastDTO cachedForecast = (ForecastDTO) redisTemplate.opsForValue().get(cacheKey);
+        assertNotNull(cachedForecast);
+        assertEquals(18.8, cachedForecast.getAirTemperature());
+        assertEquals(2.0, cachedForecast.getWindSpeed());
+
+        Optional<ForecastDTO> result2 = weatherService.getWeatherForecast(eventId, latitude, longitude, start, end);
+
+        assertTrue(result2.isPresent());
+        assertEquals(cachedForecast.getAirTemperature(), result2.get().getAirTemperature());
+        assertEquals(cachedForecast.getWindSpeed(), result2.get().getWindSpeed());
 
         verify(restTemplate, Mockito.never())
                 .getForObject(any(String.class), eq(WeatherApiResponse.class));

@@ -47,6 +47,10 @@ public class WeatherForecastService {
 
             String url = String.format(WEATHER_API_URL, latitude, longitude);
 
+            //Round off the latitude and longitude to 4 decimal places
+            latitude = Math.round(latitude * 10000.0) / 10000.0;
+            longitude = Math.round(longitude * 10000.0) / 10000.0;
+
             ResponseEntity<WeatherApiResponse> response = restTemplate.getForEntity(url, WeatherApiResponse.class);
 
             WeatherApiResponse weatherApiResponse = response.getBody();

@@ -2,10 +2,15 @@ package com.spond.weather;
 
 import com.spond.weather.dto.ErrorResponseDTO;
 import com.spond.weather.validation.RequestValidator;
+import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.MockitoAnnotations;
 
+import java.time.LocalDateTime;
+import java.time.ZoneOffset;
+import java.time.ZonedDateTime;
+import java.time.format.DateTimeFormatter;
 import java.util.Optional;
 
 import static org.junit.jupiter.api.Assertions.*;
@@ -14,28 +19,50 @@ class RequestValidatorTest {
 
     private RequestValidator requestValidator;
 
+    private static String utcTimestampStart;
+    private static String utcTimestampEnd;
+
+    @BeforeAll
+    static void setUp() {
+        LocalDateTime startDateTime = LocalDateTime.now();
+        LocalDateTime endDateTime = startDateTime.plusHours(2);
+
+        // Convert LocalDateTime to ZonedDateTime in UTC
+        ZonedDateTime zonedDateTimeStart = startDateTime.atZone(ZoneOffset.UTC);
+        ZonedDateTime zonedDateTimeEnd = endDateTime.atZone(ZoneOffset.UTC);
+
+        // Format the ZonedDateTime to a UTC timestamp string
+        utcTimestampStart = zonedDateTimeStart.format(DateTimeFormatter.ISO_INSTANT);
+        utcTimestampEnd = zonedDateTimeEnd.format(DateTimeFormatter.ISO_INSTANT);
+    }
+
     @BeforeEach
-    void setUp() {
+    void setUpEach() {
         MockitoAnnotations.openMocks(this);
         requestValidator = new RequestValidator();
     }
 
     @Test
     void testValidRequest() {
-        Optional<ErrorResponseDTO> result = RequestValidator.validateRequest(60.10, 9.58, "2024-08-27T14:00:00Z", "2024-08-27T16:00:00Z");
+        Optional<ErrorResponseDTO> result = RequestValidator.validateRequest(60.10, 9.58, utcTimestampStart, utcTimestampEnd);
         assertFalse(result.isPresent());
     }
 
     @Test
     void testInvalidLatitude() {
-        Optional<ErrorResponseDTO> result = RequestValidator.validateRequest(100.00, 9.58, "2024-08-27T14:00:00Z", "2024-08-27T16:00:00Z");
+        Optional<ErrorResponseDTO> result = RequestValidator.validateRequest(100.00, 9.58, utcTimestampStart, utcTimestampEnd);
         assertTrue(result.isPresent());
         assertEquals("Invalid latitude", result.get().getErrorDescription());
     }
 
     @Test
     void testInvalidLongitude() {
-        Optional<ErrorResponseDTO> result = RequestValidator.validateRequest(60.10, 200.00, "2024-08-27T14:00:00Z", "2024-08-27T16:00:00Z");
+
+
+        System.out.println(utcTimestampStart);
+        System.out.println(utcTimestampEnd);
+
+        Optional<ErrorResponseDTO> result = RequestValidator.validateRequest(60.10, 200.00, utcTimestampStart, utcTimestampEnd);
         assertTrue(result.isPresent());
         assertEquals("Invalid longitude", result.get().getErrorDescription());
     }
