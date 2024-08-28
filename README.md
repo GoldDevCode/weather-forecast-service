@@ -7,7 +7,7 @@ The service is implemented using the Spring Boot framework.
 
 The service provides the following endpoints:
 
-/api/v1/forecast/{eventId} - This endpoint provides the weather forecast for the given location. The location can be a city name or a latitude and longitude. The response includes the current weather conditions.
+/api/v1/forecast/{eventId} - This endpoint provides the weather forecast for the given location. The location is provided in form latitude and longitude co-ordinates. The response includes the current weather conditions.
 
 Following are the request parameters for the endpoint:
  - eventId: UUID of the event for which the weather forecast is required.
